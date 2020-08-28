@@ -78,7 +78,8 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
     long lenght = PyList_Size(o);
     printf("Length: %li\n", lenght);
 
-    for (long int i = 0; i < lenght; i++)
+    long int i;
+    for (i = 0; i < lenght; i++)
     {
         DeviceApps msg = DEVICE_APPS__INIT;
         DeviceApps__Device device = DEVICE_APPS__DEVICE__INIT;
@@ -133,7 +134,8 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
             PyErr_SetString(error, "Can't allocate apps");
             return NULL;
         }
-        for (long unsigned int i = 0; i < msg.n_apps; i++)
+        long unsigned int i;
+        for (i = 0; i < msg.n_apps; i++)
         {
             msg.apps[i] = PyLong_AsUnsignedLongLong(PyList_GetItem(apps_arr, i));
             printf(" apps: %d ", msg.apps[i]);
