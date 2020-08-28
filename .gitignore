@@ -1,5 +1,5 @@
 venv
-py[cod]
+*.py[cod]
 build/
 *egg-info
 *.so
