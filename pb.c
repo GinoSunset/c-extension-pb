@@ -26,10 +26,13 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
     static PyObject *error;
     long unsigned int len;
     long unsigned int write_len = 0;
+    long unsigned int total_length = 0;
+    long unsigned int write_header_len = 0;
     void *buf;
     gzFile gzip_file;
 
     PyObject *o;
+    pbheader_t header = PBHEADER_INIT;
 
     if (!PyArg_ParseTuple(args, "Os", &o, &path))
         return NULL;
@@ -127,19 +130,26 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
         buf = malloc(len);
 
         device_apps__pack(&msg, buf);
+        header.type = DEVICE_APPS_TYPE;
+        header.length = len;
 
+        write_header_len = gzwrite(gzip_file, &header, sizeof(pbheader_t));
         write_len = gzwrite(gzip_file, buf, len);
+        total_length += len;
+        total_length += write_header_len;
+
         fprintf(stderr, "Writed %ld serialized bytes\n", write_len);
+        fprintf(stderr, "Writed %ld serialized header\n", write_header_len);
 
         free(msg.apps);
         free(buf);
         printf("\n===========================\n");
     }
-
+    fprintf(stderr, "===Total write %ld serialized bytes\n", total_length);
     gzclose(gzip_file);
     printf("\n===========================\n");
 
-    return Py_BuildValue("i", write_len);
+    return Py_BuildValue("i", total_length);
 }
 
 // Unpack only messages with type == DEVICE_APPS_TYPE
