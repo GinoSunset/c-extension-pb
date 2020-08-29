@@ -1,3 +1,4 @@
+#include <zlib.h>
 #include <python3.6m/Python.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,54 +20,14 @@ typedef struct pbheader_s
         MAGIC, 0, 0   \
     }
 
-// https://github.com/protobuf-c/protobuf-c/wiki/Examples
-// void example() {
-// DeviceApps msg = DEVICE_APPS__INIT;
-// DeviceApps__Device device = DEVICE_APPS__DEVICE__INIT;
-// void *buf;
-// unsigned len;
-
-// char *device_id = "e7e1a50c0ec2747ca56cd9e1558c0d7c";
-// char *device_type = "idfa";
-// device.has_id = 1;
-// device.id.data = (uint8_t*)device_id;
-// device.id.len = strlen(device_id);
-// device.has_type = 1;
-// device.type.data = (uint8_t*)device_type;
-// device.type.len = strlen(device_type);
-// msg.device = &device;
-
-// msg.has_lat = 1;
-// msg.lat = 67.7835424444;
-// msg.has_lon = 1;
-// msg.lon = -22.8044005471;
-
-// msg.n_apps = 3;
-// msg.apps = malloc(sizeof(uint32_t) * msg.n_apps);
-// msg.apps[0] = 42;
-// msg.apps[1] = 43;
-// msg.apps[2] = 44;
-// len = device_apps__get_packed_size(&msg);
-
-// buf = malloc(len);
-// device_apps__pack(&msg, buf);
-
-// fprintf(stderr,"Writing %d serialized bytes\n",len); // See the length of message
-// fwrite(buf, len, 1, stdout); // Write to stdout to allow direct command line piping
-
-// free(msg.apps);
-// free(buf);
-// }
-
-// Read iterator of Python dicts
-// Pack them to DeviceApps protobuf and write to file with appropriate header
-// Return number of written bytes as Python integer
 static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
 {
     const char *path;
     static PyObject *error;
-    long unsigned int len, write_len;
+    long unsigned int len;
+    long unsigned int write_len = 0;
     void *buf;
+    gzFile gzip_file;
 
     PyObject *o;
 
@@ -74,6 +35,13 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
         return NULL;
 
     printf("Write to: %s\n", path);
+    gzip_file = gzopen(path, "wb");
+    printf("gzip: %p\n ", gzip_file);
+    if (gzip_file == NULL)
+    {
+        PyErr_SetString(error, "Can't open file");
+        return NULL;
+    }
 
     long lenght = PyList_Size(o);
     printf("Length: %li\n", lenght);
@@ -115,13 +83,27 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
         PyObject *lat = PyDict_GetItemString(protobuf, "lat");
         PyObject *lon = PyDict_GetItemString(protobuf, "lon");
 
-        msg.lat = PyFloat_AsDouble(lat);
-        printf(" lat: %lf", msg.lat);
-        msg.has_lat = 1;
-        msg.lon = PyFloat_AsDouble(lon);
-        printf(" lon: %lf\n", msg.lon);
-        msg.has_lon = 1;
+        if (lat != NULL)
+        {
+            msg.lat = PyFloat_AsDouble(lat);
+            printf(" lat: %lf", msg.lat);
+            msg.has_lat = 1;
+        }
+        else
+        {
+            msg.has_lat = 0;
+        }
 
+        if (lon != NULL)
+        {
+            msg.lon = PyFloat_AsDouble(lon);
+            printf(" lon: %lf\n", msg.lon);
+            msg.has_lon = 1;
+        }
+        else
+        {
+            msg.has_lon = 0;
+        }
         PyObject *apps_arr = PyDict_GetItemString(protobuf, "apps");
 
         msg.n_apps = PyList_Size(apps_arr);
@@ -146,28 +128,18 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
 
         device_apps__pack(&msg, buf);
 
-        fprintf(stderr, "Writing %ld serialized bytes\n", len); // See the length of message
-        fwrite(buf, len, 1, stdout);                            // Write to stdout to allow direct command line piping
-
-        FILE *f = fopen(path, "a");
-
-        if (f == NULL)
-        {
-            PyErr_SetString(error, "Can't open file");
-            return NULL;
-        }
-
-        write_len = fwrite(buf, len, 1, f);
-        fprintf(stderr, "Writed %ld serialized bytes\n", write_len); // See the length of message
-
-        fclose(f);
+        write_len = gzwrite(gzip_file, buf, len);
+        fprintf(stderr, "Writed %ld serialized bytes\n", write_len);
 
         free(msg.apps);
         free(buf);
         printf("\n===========================\n");
     }
 
-    Py_RETURN_NONE;
+    gzclose(gzip_file);
+    printf("\n===========================\n");
+
+    return Py_BuildValue("i", write_len);
 }
 
 // Unpack only messages with type == DEVICE_APPS_TYPE
@@ -197,5 +169,5 @@ static struct PyModuleDef pbmodule = {
 
 PyMODINIT_FUNC PyInit_pb(void)
 {
-    (void)PyModule_Create(&pbmodule);
+    return PyModule_Create(&pbmodule);
 }
