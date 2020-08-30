@@ -65,6 +65,16 @@ class TestPB(unittest.TestCase):
             )
             self.assertEqual(id_device, id_from_file.decode())
 
+    def test_message_not_a_dict(self):
+        with self.assertRaises(TypeError):
+            pb.deviceapps_xwrite_pb(["No dict"], TEST_FILE)
+
+    def test_message_device_not_a_dict(self):
+        with self.assertRaises(TypeError):
+            pb.deviceapps_xwrite_pb(
+                [{"device": "error", "lat": 42, "lon": -42, "apps": [1, 2]}], TEST_FILE
+            )
+
     @unittest.skip("Optional problem")
     def test_read(self):
         pb.deviceapps_xwrite_pb(self.deviceapps, TEST_FILE)

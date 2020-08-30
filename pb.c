@@ -24,6 +24,7 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
 {
     const char *path;
     static PyObject *error;
+    PyObject *protobuf = NULL;
     long unsigned int len;
     long unsigned int write_len = 0;
     long unsigned int total_length = 0;
@@ -39,15 +40,18 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
 
     printf("Write to: %s\n", path);
     gzip_file = gzopen(path, "wb");
-    printf("gzip: %p\n ", gzip_file);
     if (gzip_file == NULL)
     {
         PyErr_SetString(error, "Can't open file");
         return NULL;
     }
+    if (!PyList_Check(o))
+    {
+        PyErr_SetString(PyExc_TypeError, "Objects must be a list");
+        return NULL;
+    }
 
     long lenght = PyList_Size(o);
-    printf("Length: %li\n", lenght);
 
     long int i;
     for (i = 0; i < lenght; i++)
@@ -56,10 +60,21 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
         DeviceApps__Device device = DEVICE_APPS__DEVICE__INIT;
 
         PyObject *protobuf = PyList_GetItem(o, i);
+
+        if (protobuf == NULL || !PyDict_Check(protobuf))
+        {
+            PyErr_SetString(PyExc_TypeError, "Protobuf message must be a dictionary");
+            return NULL;
+        }
+
         PyObject_Print(protobuf, stdout, 0);
 
         PyObject *device_ = PyDict_GetItemString(protobuf, "device");
-
+        if (!PyDict_Check(device_))
+        {
+            PyErr_SetString(PyExc_TypeError, "Device message must be a dictionary");
+            return NULL;
+        }
         const char *device_type = PyUnicode_AsUTF8(PyDict_GetItemString(device_, "type"));
         if (device_type == NULL)
         {
@@ -69,7 +84,6 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
         device.has_type = 1;
         device.type.data = (uint8_t *)device_type;
         device.type.len = strlen(device_type);
-        printf("\n type: %s", device_type);
 
         const char *device_id = PyUnicode_AsUTF8(PyDict_GetItemString(device_, "id"));
         if (device_id == NULL)
@@ -79,7 +93,6 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
         device.has_id = 1;
         device.id.data = (uint8_t *)device_id;
         device.id.len = strlen(device_id);
-        printf(" id: %s\n", device_id);
 
         msg.device = &device;
 
@@ -89,7 +102,6 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
         if (lat != NULL)
         {
             msg.lat = PyFloat_AsDouble(lat);
-            printf(" lat: %lf", msg.lat);
             msg.has_lat = 1;
         }
         else
@@ -100,7 +112,6 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
         if (lon != NULL)
         {
             msg.lon = PyFloat_AsDouble(lon);
-            printf(" lon: %lf\n", msg.lon);
             msg.has_lon = 1;
         }
         else
@@ -110,10 +121,8 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
         PyObject *apps_arr = PyDict_GetItemString(protobuf, "apps");
 
         msg.n_apps = PyList_Size(apps_arr);
-        printf("size of apps: %ld \n", msg.n_apps);
 
         msg.apps = malloc(sizeof(uint32_t) * msg.n_apps);
-        printf("alloc: %p \n", msg.apps);
         if (msg.apps == NULL && msg.n_apps > 0)
         {
             PyErr_SetString(error, "Can't allocate apps");
@@ -123,7 +132,6 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
         for (i = 0; i < msg.n_apps; i++)
         {
             msg.apps[i] = PyLong_AsUnsignedLongLong(PyList_GetItem(apps_arr, i));
-            printf(" apps: %d ", msg.apps[i]);
         }
 
         len = device_apps__get_packed_size(&msg);
@@ -135,15 +143,11 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
 
         write_header_len = gzwrite(gzip_file, &header, sizeof(pbheader_t));
         write_len = gzwrite(gzip_file, buf, len);
-        total_length += len;
+        total_length += write_len;
         total_length += write_header_len;
-
-        fprintf(stderr, "Writed %ld serialized bytes\n", write_len);
-        fprintf(stderr, "Writed %ld serialized header\n", write_header_len);
 
         free(msg.apps);
         free(buf);
-        printf("\n===========================\n");
     }
     fprintf(stderr, "===Total write %ld serialized bytes\n", total_length);
     gzclose(gzip_file);
