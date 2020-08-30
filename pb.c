@@ -75,24 +75,43 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
             PyErr_SetString(PyExc_TypeError, "Device message must be a dictionary");
             return NULL;
         }
-        const char *device_type = PyUnicode_AsUTF8(PyDict_GetItemString(device_, "type"));
+
+        PyObject *dev_test = PyDict_GetItemString(device_, "type");
+        if (!PyUnicode_Check(dev_test))
+        {
+            PyErr_SetString(PyExc_TypeError, "Device type message must be a string");
+            return NULL;
+        }
+        const char *device_type = PyUnicode_AsUTF8(dev_test);
         if (device_type == NULL)
         {
-            printf("oooops");
-            // Py_DECREF
+            device.has_type = 0;
         }
-        device.has_type = 1;
-        device.type.data = (uint8_t *)device_type;
-        device.type.len = strlen(device_type);
+        else
+        {
+            device.has_type = 1;
+            device.type.data = (uint8_t *)device_type;
+            device.type.len = strlen(device_type);
+        }
 
-        const char *device_id = PyUnicode_AsUTF8(PyDict_GetItemString(device_, "id"));
+        PyObject *dev_id = PyDict_GetItemString(device_, "id");
+        if (!PyUnicode_Check(dev_id))
+        {
+            PyErr_SetString(PyExc_TypeError, "Device id message must be a string");
+            return NULL;
+        }
+
+        const char *device_id = PyUnicode_AsUTF8(dev_id);
         if (device_id == NULL)
         {
-            printf("oooops");
-        };
-        device.has_id = 1;
-        device.id.data = (uint8_t *)device_id;
-        device.id.len = strlen(device_id);
+            device.has_id = 0;
+        }
+        else
+        {
+            device.has_id = 1;
+            device.id.data = (uint8_t *)device_id;
+            device.id.len = strlen(device_id);
+        }
 
         msg.device = &device;
 

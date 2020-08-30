@@ -75,6 +75,19 @@ class TestPB(unittest.TestCase):
                 [{"device": "error", "lat": 42, "lon": -42, "apps": [1, 2]}], TEST_FILE
             )
 
+    def test_message_device_type_not_a_string(self):
+        with self.assertRaises(TypeError):
+            pb.deviceapps_xwrite_pb(
+                [{"device": {"type": 111, "id": "e7e1a50c0ec2747ca56cd9e1558c0d7d"}}],
+                TEST_FILE,
+            )
+
+    def test_message_device_id_not_a_string(self):
+        with self.assertRaises(TypeError):
+            pb.deviceapps_xwrite_pb(
+                [{"device": {"type": "gaid", "id": 111}}], TEST_FILE
+            )
+
     @unittest.skip("Optional problem")
     def test_read(self):
         pb.deviceapps_xwrite_pb(self.deviceapps, TEST_FILE)
