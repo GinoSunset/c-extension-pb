@@ -38,7 +38,6 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "Os", &o, &path))
         return NULL;
 
-    printf("Write to: %s\n", path);
     gzip_file = gzopen(path, "wb");
     if (gzip_file == NULL)
     {
@@ -59,15 +58,13 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
         DeviceApps msg = DEVICE_APPS__INIT;
         DeviceApps__Device device = DEVICE_APPS__DEVICE__INIT;
 
-        PyObject *protobuf = PyList_GetItem(o, i);
+        protobuf = PyList_GetItem(o, i);
 
         if (protobuf == NULL || !PyDict_Check(protobuf))
         {
             PyErr_SetString(PyExc_TypeError, "Protobuf message must be a dictionary");
             return NULL;
         }
-
-        PyObject_Print(protobuf, stdout, 0);
 
         PyObject *device_ = PyDict_GetItemString(protobuf, "device");
         if (!PyDict_Check(device_))
@@ -194,9 +191,7 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
         free(msg.apps);
         free(buf);
     }
-    fprintf(stderr, "===Total write %ld serialized bytes\n", total_length);
     gzclose(gzip_file);
-    printf("\n===========================\n");
 
     return Py_BuildValue("i", total_length);
 }
