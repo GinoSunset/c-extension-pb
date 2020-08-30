@@ -26,9 +26,9 @@ python3 setup.py test && python3 setup.py install
 
 How to use
 ----------
-The `pb` library has the `deviceapps_xwrite_pb` function. The function accepts a protobuf message  and string Path to the file.
+The `pb` library has the `deviceapps_xwrite_pb` function. The function accepts a protobuf message  and string Path to the file. Function return the number of bytes written
 ```
-deviceapps_xwrite_pb(messages: List[pb], path: string)
+deviceapps_xwrite_pb(messages: List[pb], path: string): Int
 ```
 
 Example
@@ -45,6 +45,6 @@ deviceapps =  [{
             "apps": [1, 2, 3, 4],
         }]
 
-pb.deviceapps_xwrite_pb(deviceapps, file_to_save)
-
+writed = pb.deviceapps_xwrite_pb(deviceapps, file_to_save)
+print(f"Writed {writed} bytes")
 ```
