@@ -120,6 +120,11 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
 
         if (lat != NULL)
         {
+            if (!PyNumber_Check(lat))
+            {
+                PyErr_SetString(PyExc_TypeError, "Lat id message must be a numeric");
+                return NULL;
+            }
             msg.lat = PyFloat_AsDouble(lat);
             msg.has_lat = 1;
         }
@@ -130,6 +135,11 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
 
         if (lon != NULL)
         {
+            if (!PyNumber_Check(lon))
+            {
+                PyErr_SetString(PyExc_TypeError, "Lon id message must be a numeric");
+                return NULL;
+            }
             msg.lon = PyFloat_AsDouble(lon);
             msg.has_lon = 1;
         }
@@ -139,18 +149,34 @@ static PyObject *py_deviceapps_xwrite_pb(PyObject *self, PyObject *args)
         }
         PyObject *apps_arr = PyDict_GetItemString(protobuf, "apps");
 
+        if (apps_arr == NULL)
+        {
+            PyErr_SetString(PyExc_TypeError, "Apps must be not NULL");
+            return NULL;
+        }
+        if (!PyList_Check(apps_arr))
+        {
+            PyErr_SetString(PyExc_TypeError, "Apps must be a list");
+            return NULL;
+        }
         msg.n_apps = PyList_Size(apps_arr);
 
         msg.apps = malloc(sizeof(uint32_t) * msg.n_apps);
         if (msg.apps == NULL && msg.n_apps > 0)
         {
-            PyErr_SetString(error, "Can't allocate apps");
+            PyErr_SetString(PyExc_OSError, "Can't allocate apps");
             return NULL;
         }
         long unsigned int i;
         for (i = 0; i < msg.n_apps; i++)
         {
-            msg.apps[i] = PyLong_AsUnsignedLongLong(PyList_GetItem(apps_arr, i));
+            PyObject *app = PyList_GetItem(apps_arr, i);
+            if (!PyLong_Check(app))
+            {
+                PyErr_SetString(PyExc_TypeError, "App must be a int");
+                return NULL;
+            }
+            msg.apps[i] = PyLong_AsUnsignedLongLong(app);
         }
 
         len = device_apps__get_packed_size(&msg);

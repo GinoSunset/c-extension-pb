@@ -88,6 +88,74 @@ class TestPB(unittest.TestCase):
                 [{"device": {"type": "gaid", "id": 111}}], TEST_FILE
             )
 
+    def test_message_lat_not_a_number(self):
+        with self.assertRaises(TypeError):
+            pb.deviceapps_xwrite_pb(
+                [
+                    {
+                        "device": {
+                            "type": "gaid",
+                            "id": "e7e1a50c0ec2747ca56cd9e1558c0d7d",
+                        },
+                        "lat": "42",
+                        "lon": -42,
+                        "apps": [1, 2],
+                    }
+                ],
+                TEST_FILE,
+            )
+
+    def test_message_lon_not_a_number(self):
+        with self.assertRaises(TypeError):
+            pb.deviceapps_xwrite_pb(
+                [
+                    {
+                        "device": {
+                            "type": "gaid",
+                            "id": "e7e1a50c0ec2747ca56cd9e1558c0d7d",
+                        },
+                        "lat": 42,
+                        "lon": "-42",
+                        "apps": [1, 2],
+                    }
+                ],
+                TEST_FILE,
+            )
+
+    def test_message_apps_not_a_list(self):
+        with self.assertRaises(TypeError):
+            pb.deviceapps_xwrite_pb(
+                [
+                    {
+                        "device": {
+                            "type": "gaid",
+                            "id": "e7e1a50c0ec2747ca56cd9e1558c0d7d",
+                        },
+                        "lat": 42,
+                        "lon": -42,
+                        "apps": 42,
+                    }
+                ],
+                TEST_FILE,
+            )
+
+    def test_message_apps_app_not_a_int(self):
+        with self.assertRaises(TypeError):
+            pb.deviceapps_xwrite_pb(
+                [
+                    {
+                        "device": {
+                            "type": "gaid",
+                            "id": "e7e1a50c0ec2747ca56cd9e1558c0d7d",
+                        },
+                        "lat": 42,
+                        "lon": -42,
+                        "apps": ["1", "2"],
+                    }
+                ],
+                TEST_FILE,
+            )
+
     @unittest.skip("Optional problem")
     def test_read(self):
         pb.deviceapps_xwrite_pb(self.deviceapps, TEST_FILE)
